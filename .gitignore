@@ -35,6 +35,12 @@ test_package/build/*
 build/*
 *.pyc
 tmp/
+build_subfolder/*
+source_subfolder/*
+grpc-1.14.1/*
+conanbuildinfo.cmake
+conanbuildinfo.txt
+conaninfo.txt
 
 # IDE
 .idea/*
@@ -42,3 +48,4 @@ tmp/
 .pydevproject
 .settings/*
 .ropeproject/*
+.vscode/*

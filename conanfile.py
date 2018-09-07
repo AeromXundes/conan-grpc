@@ -1,6 +1,5 @@
 from conans import ConanFile, CMake, tools
-import os
-
+import os, time, shutil
 
 class grpcConan(ConanFile):
     name = "grpc"
@@ -9,16 +8,15 @@ class grpcConan(ConanFile):
     url = "https://github.com/inexorgame/conan-grpc"
     homepage = "https://github.com/grpc/grpc"
     license = "Apache-2.0"
-    requires = "zlib/1.2.11@conan/stable", "OpenSSL/1.0.2o@conan/stable", "protobuf/3.5.2@bincrafters/stable", "c-ares/1.14.0@conan/stable"
+    requires = "zlib/1.2.11@conan/stable", "OpenSSL/1.0.2o@conan/stable", "protobuf/3.6.1@bincrafters/stable", "c-ares/1.14.0@conan/stable"
     settings = "os", "compiler", "build_type", "arch"
     options = {
             # "shared": [True, False],
-            "fPIC": [True, False],
             "build_codegen": [True, False],
             "build_csharp_ext": [True, False],
             "build_tests": [True, False]
     }
-    default_options = '''fPIC=True
+    default_options = '''
     build_codegen=True
     build_csharp_ext=False
     build_tests=False
@@ -28,12 +26,12 @@ class grpcConan(ConanFile):
     generators = "cmake"
     short_paths = True  # Otherwise some folders go out of the 260 chars path length scope rapidly (on windows)
 
+    src_folder = "grpc-{!s}".format(version)
     source_subfolder = "source_subfolder"
     build_subfolder = "build_subfolder"
 
     def configure(self):
         if self.settings.os == "Windows" and self.settings.compiler == "Visual Studio":
-            del self.options.fPIC
             compiler_version = int(str(self.settings.compiler.version))
             if compiler_version < 14:
                 raise tools.ConanException("gRPC can only be built with Visual Studio 2015 or higher.")
@@ -41,7 +39,12 @@ class grpcConan(ConanFile):
     def source(self):
         archive_url = "https://github.com/grpc/grpc/archive/v{}.zip".format(self.version)
         tools.get(archive_url, sha256="a476426fa784ba5a8ad46bb822f71f8b79c19b84b0499b2440fbd63426d76161")
-        os.rename("grpc-{!s}".format(self.version), self.source_subfolder)
+        #if(os.path.exists(self.source_subfolder)):
+        #    print("Removing old source folder...")
+        #    shutil.rmtree(self.source_subfolder)
+        #old_folder = "grpc-{!s}".format(self.version)
+        #print("Renaming " + old_folder + " to " + self.source_subfolder)
+        #os.rename(old_folder, self.source_subfolder)
 
         # cmake_name = "{}/CMakeLists.txt".format(self.source_subfolder)
 
@@ -66,6 +69,8 @@ class grpcConan(ConanFile):
             self.build_requires("gflags/2.2.1@bincrafters/stable")
 
     def _configure_cmake(self):
+        extra_defs = {}
+        extra_defs['GRPC_SRC_FOLDER'] = self.src_folder
         cmake = CMake(self)
 
         # This doesn't work yet as one would expect, because the install target builds everything
@@ -103,7 +108,7 @@ class grpcConan(ConanFile):
             cmake.definitions['gRPC_GFLAGS_PROVIDER'] = "none"
             cmake.definitions['gRPC_BENCHMARK_PROVIDER'] = "none"
 
-        cmake.configure(build_folder=self.build_subfolder)
+        cmake.configure(build_folder=self.build_subfolder, defs=extra_defs)
         return cmake
 
     def build(self):
